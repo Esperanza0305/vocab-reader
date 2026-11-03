@@ -1,3 +1,4 @@
+const APP_VERSION='vr-v8';
 'use strict';
 /* ---------- IndexedDB ---------- */
 const DB_NAME='vocab-reader',DB_VER=1;let _db;
@@ -88,19 +89,22 @@ function setFont(p){fontPct=Math.max(70,Math.min(220,p));kvSet('fontPct',fontPct
 $('#tocBtn').onclick=()=>$('#toc').hidden=false;$('#toc').onclick=e=>{if(e.target.id==='toc')$('#toc').hidden=true};
 document.addEventListener('keydown',e=>{if($('#reader').hidden)return;if(e.key==='ArrowRight')R.rend.next();if(e.key==='ArrowLeft')R.rend.prev();if(e.key==='Escape')closeAll();});
 
-function hookContents(c){const doc=c.document;let sx=0,sy=0,lpT=null,lpPt=null;
- try{const st=doc.createElement('style');st.textContent='html,body{-webkit-touch-callout:none!important;-webkit-user-select:none!important;user-select:none!important}::selection{background:rgba(201,165,128,.45)}';doc.head.appendChild(st);}catch(_){}
- doc.addEventListener('contextmenu',e=>{e.preventDefault();if(doc._lp&&Date.now()-doc._lp<1500)return;resolveWord(e.clientX,e.clientY,c).then(i=>{if(i)showPopup(i)});});
- doc.addEventListener('selectstart',e=>e.preventDefault());
- doc.addEventListener('touchstart',e=>{const t=e.changedTouches[0];sx=t.clientX;sy=t.clientY;clearTimeout(lpT);lpPt={x:t.clientX,y:t.clientY};
-  lpT=setTimeout(async()=>{lpT=null;doc._lp=Date.now();const i=await resolveWord(lpPt.x,lpPt.y,c);if(i){hideBar();showPopup(i);if(navigator.vibrate)navigator.vibrate(10);}},500);},{passive:true});
- doc.addEventListener('touchmove',e=>{const t=e.changedTouches[0];if(Math.hypot(t.clientX-sx,t.clientY-sy)>10){clearTimeout(lpT);lpT=null;}},{passive:true});
- doc.addEventListener('touchend',e=>{clearTimeout(lpT);lpT=null;const t=e.changedTouches[0];const dx=t.clientX-sx,dy=t.clientY-sy;
-  if(doc._lp&&Date.now()-doc._lp<1500){e.preventDefault();return;}
-  if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5){closeAll();dx<0?R.rend.next():R.rend.prev();doc._swiped=Date.now();}},{passive:false});
- doc.addEventListener('click',e=>{if(doc._swiped&&Date.now()-doc._swiped<400)return;if(doc._lp&&Date.now()-doc._lp<1500){doc._lp=0;return;}onTap(e,c)});
+function hookContents(c){const doc=c.document;let sx=0,sy=0,st=0,lpT=null,moved=false;
+ try{const el=doc.createElement('style');el.textContent='html,body{-webkit-touch-callout:none!important;cursor:pointer;-webkit-tap-highlight-color:transparent}::selection{background:rgba(201,165,128,.45)}';doc.head.appendChild(el);}catch(_){}
+ const fire=async(x,y,full)=>{try{const i=await resolveWord(x,y,c);if(i){if(full){hideBar();showPopup(i);}else showBar(i);return true;}}catch(err){console.log('tap err',err)}return false;};
+ doc.addEventListener('contextmenu',e=>{e.preventDefault();if(Date.now()-(doc._lp||0)<1500)return;fire(e.clientX,e.clientY,true);});
+ doc.addEventListener('selectstart',e=>{if(!doc._allowSel)e.preventDefault();});
+ doc.addEventListener('touchstart',e=>{if(e.touches.length>1)return;const t=e.changedTouches[0];sx=t.clientX;sy=t.clientY;st=Date.now();moved=false;clearTimeout(lpT);
+  lpT=setTimeout(()=>{lpT=null;if(moved)return;doc._lp=Date.now();fire(sx,sy,true);},500);},{passive:true});
+ doc.addEventListener('touchmove',e=>{const t=e.changedTouches[0];if(Math.hypot(t.clientX-sx,t.clientY-sy)>10){moved=true;clearTimeout(lpT);lpT=null;}},{passive:true});
+ doc.addEventListener('touchend',e=>{clearTimeout(lpT);lpT=null;const t=e.changedTouches[0];const dx=t.clientX-sx,dy=t.clientY-sy;doc._touch=Date.now();
+  if(Date.now()-(doc._lp||0)<1500){if(e.cancelable)e.preventDefault();return;}
+  if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5){closeAll();dx<0?R.rend.next():R.rend.prev();return;}
+  if(!moved&&Date.now()-st<500){if(e.cancelable)e.preventDefault();onTap({clientX:t.clientX,clientY:t.clientY},c);}},{passive:false});
+ doc.addEventListener('click',e=>{if(Date.now()-(doc._touch||0)<800)return;onTap(e,c)});
  setTimeout(()=>highlightSaved(c),0);}
-function caretAt(doc,x,y){if(doc.caretRangeFromPoint)return doc.caretRangeFromPoint(x,y);const p=doc.caretPositionFromPoint&&doc.caretPositionFromPoint(x,y);if(!p)return null;const r=doc.createRange();r.setStart(p.offsetNode,p.offset);return r;}
+function caretAt(doc,x,y){const b=doc.body,o=b.style.webkitUserSelect,o2=b.style.userSelect;b.style.webkitUserSelect='text';b.style.userSelect='text';try{return caretAt0(doc,x,y)}finally{b.style.webkitUserSelect=o;b.style.userSelect=o2;}}
+function caretAt0(doc,x,y){if(doc.caretRangeFromPoint)return doc.caretRangeFromPoint(x,y);const p=doc.caretPositionFromPoint&&doc.caretPositionFromPoint(x,y);if(!p)return null;const r=doc.createRange();r.setStart(p.offsetNode,p.offset);return r;}
 const WCH=/[A-Za-z'’\-]/;
 function wordRangeAt(doc,x,y){const cr=caretAt(doc,x,y);if(!cr)return null;const n=cr.startContainer;if(n.nodeType!==3)return null;const s=n.data;let i=cr.startOffset,a=i,b=i;
  while(a>0&&WCH.test(s[a-1]))a--;while(b<s.length&&WCH.test(s[b]))b++;while(a<b&&/['’\-]/.test(s[a]))a++;while(b>a&&/['’\-]/.test(s[b-1]))b--;if(b<=a)return null;
@@ -112,7 +116,7 @@ function sentenceOf(range){let blk=range.startContainer.parentElement;while(blk&
  const s=start<0?0:start;return text.slice(s,e).replace(/\s+/g,' ').trim().slice(0,400);}
 let cur=null;
 async function resolveWord(x,y,c){const doc=c.document;const r=wordRangeAt(doc,x,y);if(!r)return null;
- const raw=r.toString();const sel=doc.getSelection();sel.removeAllRanges();sel.addRange(r);
+ const raw=r.toString();try{doc._allowSel=true;const sel=doc.getSelection();sel.removeAllRanges();sel.addRange(r);}catch(_){}finally{doc._allowSel=false}
  let cfi=null;try{cfi=c.cfiFromRange(r)}catch(_){}
  const info=await lookup(raw);if(!info)return null;cur={...info,surface:raw,sentence:sentenceOf(r),cfi,bookId:R.meta.id,bookTitle:R.meta.title};return cur;}
 async function onTap(e,c){const doc=c.document;
@@ -213,10 +217,10 @@ $('#dictDownload').onclick=async()=>{const b=$('#dictDownload');b.disabled=true;
  for(const k of L){b.textContent=`下載中 ${++i}/26`;await loadShard(k);}await loadLemma();await kvSet('dictFull',true);b.textContent='✓ 已下載完整詞典';};
 async function renderSettings(){$('#newLimit').value=await kvGet('newLimit',0);if(await kvGet('dictFull',false)){$('#dictDownload').textContent='✓ 已下載完整詞典（可重新下載）';$('#dictDownload').disabled=false;}
  let s='';if(navigator.storage&&navigator.storage.estimate){const e=await navigator.storage.estimate();s=`已使用 ${(e.usage/1048576).toFixed(1)} MB`;}
- const p=navigator.storage&&navigator.storage.persisted?await navigator.storage.persisted():false;$('#storageStatus').innerHTML=`${s}${s?'・':''}${p?'<img class=\"ui-ic\" src=\"icons/ui-done.png\" alt=\"\"> 已設為長期保存':'⚠️ 尚未設為長期保存'}`;}
+ const p=navigator.storage&&navigator.storage.persisted?await navigator.storage.persisted():false;$('#appVersion').textContent='版本 '+APP_VERSION;$('#storageStatus').innerHTML=`${s}${s?'・':''}${p?'<img class=\"ui-ic\" src=\"icons/ui-done.png\" alt=\"\"> 已設為長期保存':'⚠️ 尚未設為長期保存'}`;}
 
 /* ---------- boot ---------- */
 (async()=>{if(navigator.storage&&navigator.storage.persist){try{await navigator.storage.persist()}catch(e){}}
- if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('sw.js');
+ if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{r.update();document.addEventListener('visibilitychange',()=>{if(!document.hidden)r.update()})});let _rl=false;navigator.serviceWorker&&navigator.serviceWorker.addEventListener('controllerchange',()=>{if(_rl)return;_rl=true;if($('#reader').hidden)location.reload();});
  await refresh();renderLibrary();loadLemma();
  window.__app={idb,lookup,refresh,openBook,get words(){return words},get R(){return R}};})();
