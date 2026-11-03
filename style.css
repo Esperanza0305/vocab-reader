@@ -64,4 +64,4 @@ select,.search,.num{font:inherit;border:1px solid var(--line);border-radius:10px
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + var(--safe-b));background:#2b2622;color:#fff;padding:8px 16px;border-radius:20px;font-size:14px;z-index:50}
 [hidden]{display:none!important}.toast{white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
 
-.ui-ic{width:1.25em;height:1.25em;vertical-align:-.25em;object-fit:contain}.tabs button span .ui-ic{width:26px;height:26px;opacity:.55}.tabs button.active span .ui-ic{opacity:1}
+.ui-ic{width:1.25em;height:1.25em;vertical-align:-.25em;object-fit:contain}.tabs button span{position:relative;display:inline-flex;align-items:center;justify-content:center;width:48px;height:32px}.tabs button span .ui-ic{width:26px;height:26px;position:relative;z-index:1}.tabs button span::before{content:"";position:absolute;inset:-2px -4px;background:url(icons/tab-wash.png) center/contain no-repeat;opacity:0;transition:opacity .2s}.tabs button.active span::before{opacity:1}.tabs button.active{color:#6b4a32}
