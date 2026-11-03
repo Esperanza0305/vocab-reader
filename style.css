@@ -1,4 +1,4 @@
-:root{--bg:#f7f3ec;--card:#fff;--ink:#2b2622;--muted:#8a8178;--accent:#c2603a;--accent2:#f3dfd3;--line:#e6dfd4;--safe-b:env(safe-area-inset-bottom);--safe-t:env(safe-area-inset-top)}
+:root{--bg:#f7f3ec;--card:#fff;--ink:#2b2622;--muted:#8a8178;--accent:#7a5638;--accent2:#efe4d6;--line:#e6dfd4;--safe-b:env(safe-area-inset-bottom);--safe-t:env(safe-area-inset-top)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC",sans-serif}
 .view{display:none;padding:calc(var(--safe-t) + 8px) 16px calc(80px + var(--safe-b));min-height:100vh}
@@ -63,3 +63,5 @@ select,.search,.num{font:inherit;border:1px solid var(--line);border-radius:10px
 .pop-sent{font-family:Georgia,serif;border-left:3px solid var(--accent2);padding-left:8px;margin:8px 0}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + var(--safe-b));background:#2b2622;color:#fff;padding:8px 16px;border-radius:20px;font-size:14px;z-index:50}
 [hidden]{display:none!important}.toast{white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
+
+.ui-ic{width:1.25em;height:1.25em;vertical-align:-.25em;object-fit:contain}.tabs button span .ui-ic{width:26px;height:26px;opacity:.55}.tabs button.active span .ui-ic{opacity:1}

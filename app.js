@@ -154,9 +154,9 @@ function drawCard(w){const area=$('#reviewCard');
   <div class="card-sent" style="margin-top:24px">${markSent(w.sentence,w.surface||w.word)}</div><div class="grow"></div><button class="btn primary" id="flipBtn" style="width:100%;padding:14px">顯示答案</button>`;
   $('#flipBtn').onclick=()=>{flipped=true;drawCard(w)};return;}
  const pv=scheduler.repeat(de(w.card),new Date());const G=F.Rating;
- area.innerHTML=`<div class="card-word" style="margin-top:6px">${esc(w.word)} <button class="icon" id="cardSpeak">🔊</button></div><div class="card-ph">${w.phonetic?'/'+esc(w.phonetic)+'/':''}</div>
+ area.innerHTML=`<div class="card-word" style="margin-top:6px">${esc(w.word)} <button class="icon" id="cardSpeak"><img class="ui-ic" src="icons/ui-speak.png" alt=""></button></div><div class="card-ph">${w.phonetic?'/'+esc(w.phonetic)+'/':''}</div>
  <div class="card-def">${esc(w.meaning)}</div><div class="card-sent">${markSent(w.sentence,w.surface||w.word)}</div>
- <div class="card-src"><span>📖 ${esc(w.bookTitle)}</span>${w.cfi?'<button class="btn" id="jumpBtn">跳回原文</button>':''}</div><div class="grow"></div>
+ <div class="card-src"><span><img class="ui-ic" src="icons/ui-read.png" alt=""> ${esc(w.bookTitle)}</span>${w.cfi?'<button class="btn" id="jumpBtn">跳回原文</button>':''}</div><div class="grow"></div>
  <div class="rate"><button class="r1" data-r="${G.Again}">重來<small>${fmtIv(pv[G.Again].card.due)}</small></button><button class="r2" data-r="${G.Hard}">困難<small>${fmtIv(pv[G.Hard].card.due)}</small></button>
  <button class="r3" data-r="${G.Good}">良好<small>${fmtIv(pv[G.Good].card.due)}</small></button><button class="r4" data-r="${G.Easy}">簡單<small>${fmtIv(pv[G.Easy].card.due)}</small></button></div>`;
  $('#cardSpeak').onclick=()=>{const u=new SpeechSynthesisUtterance(w.word);u.lang='en-US';speechSynthesis.speak(u)};
@@ -194,7 +194,7 @@ $('#dictDownload').onclick=async()=>{const b=$('#dictDownload');b.disabled=true;
  for(const k of L){b.textContent=`下載中 ${++i}/26`;await loadShard(k);}await loadLemma();await kvSet('dictFull',true);b.textContent='✓ 已下載完整詞典';};
 async function renderSettings(){$('#newLimit').value=await kvGet('newLimit',0);if(await kvGet('dictFull',false)){$('#dictDownload').textContent='✓ 已下載完整詞典（可重新下載）';$('#dictDownload').disabled=false;}
  let s='';if(navigator.storage&&navigator.storage.estimate){const e=await navigator.storage.estimate();s=`已使用 ${(e.usage/1048576).toFixed(1)} MB`;}
- const p=navigator.storage&&navigator.storage.persisted?await navigator.storage.persisted():false;$('#storageStatus').textContent=`${s}${s?'・':''}${p?'✅ 已設為長期保存':'⚠️ 尚未設為長期保存'}`;}
+ const p=navigator.storage&&navigator.storage.persisted?await navigator.storage.persisted():false;$('#storageStatus').innerHTML=`${s}${s?'・':''}${p?'<img class=\"ui-ic\" src=\"icons/ui-done.png\" alt=\"\"> 已設為長期保存':'⚠️ 尚未設為長期保存'}`;}
 
 /* ---------- boot ---------- */
 (async()=>{if(navigator.storage&&navigator.storage.persist){try{await navigator.storage.persist()}catch(e){}}

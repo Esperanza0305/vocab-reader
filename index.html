@@ -10,7 +10,8 @@
 <meta name="apple-mobile-web-app-title" content="生詞閱讀">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
-<link rel="icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="icon" href="icons/icon-192.png" sizes="192x192">
 <link rel="stylesheet" href="style.css">
 <title>生詞閱讀</title>
 </head>
@@ -67,10 +68,10 @@
   </section>
 
   <nav class="tabs">
-    <button data-view="library" class="active"><span>📚</span>書架</button>
-    <button data-view="review"><span>🧠</span>複習<b id="dueBadge" class="badge" hidden></b></button>
-    <button data-view="words"><span>🔤</span>單字本</button>
-    <button data-view="settings"><span>⚙️</span>設定</button>
+    <button data-view="library" class="active"><span><img class="ui-ic" src="icons/ui-books.png" alt=""></span>書架</button>
+    <button data-view="review"><span><img class="ui-ic" src="icons/ui-review.png" alt=""></span>複習<b id="dueBadge" class="badge" hidden></b></button>
+    <button data-view="words"><span><img class="ui-ic" src="icons/ui-read.png" alt=""></span>單字本</button>
+    <button data-view="settings"><span><img class="ui-ic" src="icons/ui-settings.png" alt=""></span>設定</button>
   </nav>
 </div>
 
@@ -94,7 +95,7 @@
 <div id="popup" class="popup" hidden>
   <div class="pop-head">
     <div><span class="pop-word" id="popWord"></span> <span class="pop-ph" id="popPh"></span></div>
-    <button class="icon" id="popSpeak" aria-label="發音">🔊</button>
+    <button class="icon" id="popSpeak" aria-label="發音"><img class="ui-ic" src="icons/ui-speak.png" alt=""></button>
   </div>
   <div class="pop-form muted small" id="popForm"></div>
   <div class="pop-def" id="popDef"></div>
