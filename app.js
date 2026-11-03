@@ -1,4 +1,4 @@
-const APP_VERSION='vr-v8';
+const APP_VERSION='vr-v9';
 'use strict';
 /* ---------- IndexedDB ---------- */
 const DB_NAME='vocab-reader',DB_VER=1;let _db;
@@ -71,7 +71,9 @@ async function openBook(id,cfi){const meta=await idb.get('books',id);const file=
  closePopup();if(R.book)R.book.destroy();$('#reader').hidden=false;$('#readerTitle').textContent=meta.title;$('#viewer').innerHTML='';
  meta.opened=Date.now();await idb.put('books',meta);R.meta=meta;fontPct=await kvGet('fontPct',110);
  const book=ePub(file.data.slice(0));R.book=book;
- const rend=book.renderTo('viewer',{width:'100%',height:'100%',flow:'paginated',spread:'none',allowScriptedContent:false});R.rend=rend;
+ const rend=book.renderTo('viewer',{width:'100%',height:'100%',flow:'paginated',spread:'none',allowScriptedContent:true});R.rend=rend;
+ book.spine.hooks.content.register(d=>{try{d.querySelectorAll('script').forEach(x=>x.remove());d.querySelectorAll('*').forEach(el=>{for(const at of [...el.attributes])if(/^on/i.test(at.name))el.removeAttribute(at.name)})}catch(_){}});
+ rend.on('selected',(cfiRange,contents)=>{dbg('epub selected');onSelection(contents)});
  rend.themes.default({body:{'font-family':'Georgia, "Times New Roman", serif !important','line-height':'1.6 !important','padding':'0 6px !important'},'::highlight(vr-saved)':{'background-color':'#f3dfd3','text-decoration':'underline dotted #c2603a'},'.vr-saved':{'background':'#f3dfd3'}});
  rend.themes.fontSize(fontPct+'%');
  rend.hooks.content.register(c=>hookContents(c));
@@ -89,22 +91,28 @@ function setFont(p){fontPct=Math.max(70,Math.min(220,p));kvSet('fontPct',fontPct
 $('#tocBtn').onclick=()=>$('#toc').hidden=false;$('#toc').onclick=e=>{if(e.target.id==='toc')$('#toc').hidden=true};
 document.addEventListener('keydown',e=>{if($('#reader').hidden)return;if(e.key==='ArrowRight')R.rend.next();if(e.key==='ArrowLeft')R.rend.prev();if(e.key==='Escape')closeAll();});
 
-function hookContents(c){const doc=c.document;let sx=0,sy=0,st=0,lpT=null,moved=false;
- try{const el=doc.createElement('style');el.textContent='html,body{-webkit-touch-callout:none!important;cursor:pointer;-webkit-tap-highlight-color:transparent}::selection{background:rgba(201,165,128,.45)}';doc.head.appendChild(el);}catch(_){}
- const fire=async(x,y,full)=>{try{const i=await resolveWord(x,y,c);if(i){if(full){hideBar();showPopup(i);}else showBar(i);return true;}}catch(err){console.log('tap err',err)}return false;};
- doc.addEventListener('contextmenu',e=>{e.preventDefault();if(Date.now()-(doc._lp||0)<1500)return;fire(e.clientX,e.clientY,true);});
- doc.addEventListener('selectstart',e=>{if(!doc._allowSel)e.preventDefault();});
- doc.addEventListener('touchstart',e=>{if(e.touches.length>1)return;const t=e.changedTouches[0];sx=t.clientX;sy=t.clientY;st=Date.now();moved=false;clearTimeout(lpT);
-  lpT=setTimeout(()=>{lpT=null;if(moved)return;doc._lp=Date.now();fire(sx,sy,true);},500);},{passive:true});
+function onSelection(c){const doc=c.document;if(doc._selBusy)return;const sel=doc.getSelection();if(!sel||sel.isCollapsed||!sel.rangeCount)return;
+ const r0=sel.getRangeAt(0);const n=r0.startContainer;dbg('selection "'+String(sel).slice(0,20)+'"');
+ if(Date.now()-(doc._selfSel||0)<300)return;
+ let rr=null;if(n.nodeType===3){const t=n.data;let i=r0.startOffset;while(i<t.length&&!WCH.test(t[i]))i++;let a=i,b=i;while(a>0&&WCH.test(t[a-1]))a--;while(b<t.length&&WCH.test(t[b]))b++;while(a<b&&/['’\-]/.test(t[a]))a++;while(b>a&&/['’\-]/.test(t[b-1]))b--;if(b>a){rr=doc.createRange();rr.setStart(n,a);rr.setEnd(n,b);}}
+ doc._selBusy=true;try{sel.removeAllRanges()}catch(_){}setTimeout(()=>doc._selBusy=false,50);
+ if(Date.now()-(doc._lp||0)<1500)return;doc._lp=Date.now();
+ if(rr)openRange(rr,c,true);}
+function hookContents(c){const doc=c.document;let sx=0,sy=0,st=0,lpT=null,moved=false;dbg('hook doc '+(c.sectionIndex??''));
+ try{const el=doc.createElement('style');el.textContent='html,body{-webkit-touch-callout:none!important;-webkit-user-select:text;cursor:pointer;-webkit-tap-highlight-color:transparent}::selection{background:rgba(201,165,128,.45)}';(doc.head||doc.documentElement).appendChild(el);}catch(_){}
+ const fire=async(x,y,full)=>{try{const i=await resolveWord(x,y,c);dbg('word '+(i?i.lemma:'none')+' @'+Math.round(x)+','+Math.round(y));if(i){if(full){hideBar();showPopup(i);}else showBar(i);return true;}}catch(err){dbg('err '+err.message)}return false;};
+ doc.addEventListener('selectionchange',()=>onSelection(c));
+ doc.addEventListener('contextmenu',e=>{e.preventDefault();dbg('contextmenu');if(Date.now()-(doc._lp||0)<1500)return;doc._lp=Date.now();fire(e.clientX,e.clientY,true);});
+ doc.addEventListener('touchstart',e=>{if(e.touches.length>1)return;const t=e.changedTouches[0];sx=t.clientX;sy=t.clientY;st=Date.now();moved=false;clearTimeout(lpT);dbg('touchstart '+Math.round(sx)+','+Math.round(sy));
+  lpT=setTimeout(()=>{lpT=null;if(moved)return;doc._lp=Date.now();dbg('longpress');fire(sx,sy,true);},450);},{passive:true});
  doc.addEventListener('touchmove',e=>{const t=e.changedTouches[0];if(Math.hypot(t.clientX-sx,t.clientY-sy)>10){moved=true;clearTimeout(lpT);lpT=null;}},{passive:true});
- doc.addEventListener('touchend',e=>{clearTimeout(lpT);lpT=null;const t=e.changedTouches[0];const dx=t.clientX-sx,dy=t.clientY-sy;doc._touch=Date.now();
-  if(Date.now()-(doc._lp||0)<1500){if(e.cancelable)e.preventDefault();return;}
+ doc.addEventListener('touchend',e=>{clearTimeout(lpT);lpT=null;const t=e.changedTouches[0];const dx=t.clientX-sx,dy=t.clientY-sy;doc._touch=Date.now();dbg('touchend moved='+moved+' '+(Date.now()-st)+'ms');
+  if(Date.now()-(doc._lp||0)<1500)return;
   if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5){closeAll();dx<0?R.rend.next():R.rend.prev();return;}
-  if(!moved&&Date.now()-st<500){if(e.cancelable)e.preventDefault();onTap({clientX:t.clientX,clientY:t.clientY},c);}},{passive:false});
- doc.addEventListener('click',e=>{if(Date.now()-(doc._touch||0)<800)return;onTap(e,c)});
+  if(!moved&&Date.now()-st<450){doc._tapAt=Date.now();onTap({clientX:t.clientX,clientY:t.clientY},c);}},{passive:true});
+ doc.addEventListener('click',e=>{dbg('click');if(Date.now()-(doc._tapAt||0)<800||Date.now()-(doc._lp||0)<1500)return;onTap(e,c)});
  setTimeout(()=>highlightSaved(c),0);}
-function caretAt(doc,x,y){const b=doc.body,o=b.style.webkitUserSelect,o2=b.style.userSelect;b.style.webkitUserSelect='text';b.style.userSelect='text';try{return caretAt0(doc,x,y)}finally{b.style.webkitUserSelect=o;b.style.userSelect=o2;}}
-function caretAt0(doc,x,y){if(doc.caretRangeFromPoint)return doc.caretRangeFromPoint(x,y);const p=doc.caretPositionFromPoint&&doc.caretPositionFromPoint(x,y);if(!p)return null;const r=doc.createRange();r.setStart(p.offsetNode,p.offset);return r;}
+function caretAt(doc,x,y){if(doc.caretRangeFromPoint)return doc.caretRangeFromPoint(x,y);const p=doc.caretPositionFromPoint&&doc.caretPositionFromPoint(x,y);if(!p)return null;const r=doc.createRange();r.setStart(p.offsetNode,p.offset);return r;}
 const WCH=/[A-Za-z'’\-]/;
 function wordRangeAt(doc,x,y){const cr=caretAt(doc,x,y);if(!cr)return null;const n=cr.startContainer;if(n.nodeType!==3)return null;const s=n.data;let i=cr.startOffset,a=i,b=i;
  while(a>0&&WCH.test(s[a-1]))a--;while(b<s.length&&WCH.test(s[b]))b++;while(a<b&&/['’\-]/.test(s[a]))a++;while(b>a&&/['’\-]/.test(s[b-1]))b--;if(b<=a)return null;
@@ -115,14 +123,16 @@ function sentenceOf(range){let blk=range.startContainer.parentElement;while(blk&
  const before=text.slice(0,off);let start=-1;const re2=/[.!?]+["”’)]*\s+(?=[“"‘A-Z])/g;let mm;while((mm=re2.exec(before)))start=mm.index+mm[0].length;
  const s=start<0?0:start;return text.slice(s,e).replace(/\s+/g,' ').trim().slice(0,400);}
 let cur=null;
-async function resolveWord(x,y,c){const doc=c.document;const r=wordRangeAt(doc,x,y);if(!r)return null;
- const raw=r.toString();try{doc._allowSel=true;const sel=doc.getSelection();sel.removeAllRanges();sel.addRange(r);}catch(_){}finally{doc._allowSel=false}
+async function openRange(r,c,full){const i=await infoFromRange(r,c);dbg('word '+(i?i.lemma:'none'));if(!i)return;if(full){hideBar();showPopup(i);}else showBar(i);}
+async function resolveWord(x,y,c){const r=wordRangeAt(c.document,x,y);if(!r)return null;return infoFromRange(r,c);}
+async function infoFromRange(r,c){const doc=c.document;
+ const raw=r.toString();
  let cfi=null;try{cfi=c.cfiFromRange(r)}catch(_){}
  const info=await lookup(raw);if(!info)return null;cur={...info,surface:raw,sentence:sentenceOf(r),cfi,bookId:R.meta.id,bookTitle:R.meta.title};return cur;}
-async function onTap(e,c){const doc=c.document;
+async function onTap(e,c){const doc=c.document;dbg('tap '+Math.round(e.clientX)+','+Math.round(e.clientY));
  if(!$('#popup').hidden){closeAll();return;}
  if(!wordRangeAt(doc,e.clientX,e.clientY)){if(!$('#wordBar').hidden){closeAll();return;}const fr=doc.defaultView.frameElement.getBoundingClientRect();const w=$('#viewer').clientWidth;const x=fr.left+e.clientX;if(x<w*0.22)R.rend.prev();else if(x>w*0.78)R.rend.next();return;}
- const i=await resolveWord(e.clientX,e.clientY,c);if(i)showBar(i);}
+ const i=await resolveWord(e.clientX,e.clientY,c);dbg('word '+(i?i.lemma:'none'));if(i)showBar(i);}
 function glossOf(m){return String(m||'').split('\n').map(x=>x.trim()).filter(Boolean).slice(0,2).join('；').replace(/\s+/g,' ');}
 function isSaved(i){return !!words.find(w=>w.id===i.bookId+'|'+i.lemma);}
 function showBar(i){$('#wbWord').textContent=i.lemma;$('#wbGloss').textContent=glossOf(i.meaning);const sv=isSaved(i);$('#wbSave').textContent=sv?'✓':'＋';$('#wbSave').classList.toggle('saved',sv);$('#wordBar').hidden=false;}
@@ -224,3 +234,6 @@ async function renderSettings(){$('#newLimit').value=await kvGet('newLimit',0);i
  if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{r.update();document.addEventListener('visibilitychange',()=>{if(!document.hidden)r.update()})});let _rl=false;navigator.serviceWorker&&navigator.serviceWorker.addEventListener('controllerchange',()=>{if(_rl)return;_rl=true;if($('#reader').hidden)location.reload();});
  await refresh();renderLibrary();loadLemma();
  window.__app={idb,lookup,refresh,openBook,get words(){return words},get R(){return R}};})();
+
+let DBG=false;const _dl=[];function dbg(m){if(!DBG)return;_dl.push(new Date().toTimeString().slice(3,8)+' '+m);if(_dl.length>14)_dl.shift();let o=document.getElementById('dbgLog');if(!o){o=document.createElement('pre');o.id='dbgLog';document.body.appendChild(o);}o.textContent=_dl.join('\n');}
+(async()=>{DBG=await kvGet('debug',false);const cb=$('#debugToggle');if(cb){cb.checked=DBG;cb.onchange=async()=>{DBG=cb.checked;await kvSet('debug',DBG);if(!DBG){const o=document.getElementById('dbgLog');o&&o.remove();}else dbg('debug on '+APP_VERSION);};}})();

@@ -69,3 +69,4 @@ select,.search,.num{font:inherit;border:1px solid var(--line);border-radius:10px
 .wb-main{flex:1;min-width:0;display:flex;align-items:baseline;gap:10px;border:0;background:none;text-align:left;font-family:inherit;color:var(--ink);padding:6px 4px}
 .wb-main b{font-size:18px;color:#5c4130;flex-shrink:0}.wb-main span{font-size:14px;color:#6b5a4c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .wb-btn{padding:4px}.wb-save{flex-shrink:0;width:36px;height:36px;border-radius:50%;border:1.5px solid #7a5638;background:#fff;color:#7a5638;font-size:18px;line-height:1}.wb-save.saved{background:#efe4d6}
+#dbgLog{position:fixed;left:6px;top:calc(var(--safe-t) + 46px);z-index:99;max-width:70vw;margin:0;padding:6px 8px;font:11px/1.35 ui-monospace,Menlo,monospace;background:rgba(40,30,22,.78);color:#fff6e8;border-radius:8px;pointer-events:none;white-space:pre-wrap}
