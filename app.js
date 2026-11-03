@@ -1,4 +1,4 @@
-const APP_VERSION='vr-v11';
+const APP_VERSION='vr-v12';
 'use strict';
 /* ---------- IndexedDB ---------- */
 const DB_NAME='vocab-reader',DB_VER=1;let _db;
@@ -116,7 +116,7 @@ function caretAt(doc,x,y){if(doc.caretRangeFromPoint)return doc.caretRangeFromPo
 const WCH=/[A-Za-z'’\-]/;
 function wordRangeAt(doc,x,y){const cr=caretAt(doc,x,y);if(!cr)return null;const n=cr.startContainer;if(n.nodeType!==3)return null;const s=n.data;let i=cr.startOffset,a=i,b=i;
  while(a>0&&WCH.test(s[a-1]))a--;while(b<s.length&&WCH.test(s[b]))b++;while(a<b&&/['’\-]/.test(s[a]))a++;while(b>a&&/['’\-]/.test(s[b-1]))b--;if(b<=a)return null;
- const r=doc.createRange();r.setStart(n,a);r.setEnd(n,b);const rect=r.getBoundingClientRect();if(x<rect.left-4||x>rect.right+4||y<rect.top-4||y>rect.bottom+4)return null;return r;}
+ const r=doc.createRange();r.setStart(n,a);r.setEnd(n,b);const hit=[...r.getClientRects()].some(q=>x>=q.left-2&&x<=q.right+2&&y>=q.top-2&&y<=q.bottom+2);return hit?r:null;}
 function sentenceOf(range){let blk=range.startContainer.parentElement;while(blk&&!/^(P|DIV|LI|BLOCKQUOTE|H\d|TD|DD|BODY)$/.test(blk.tagName))blk=blk.parentElement;blk=blk||range.startContainer.parentElement;
  const pre=range.cloneRange();pre.setStart(blk,0);pre.setEnd(range.startContainer,range.startOffset);const off=pre.toString().length;const text=blk.textContent;
  let e;const re=/[.!?]+["”’)]*(\s|$)/g;re.lastIndex=off;const m=re.exec(text);e=m?m.index+m[0].length:text.length;
@@ -131,7 +131,7 @@ async function infoFromRange(r,c){const doc=c.document;
  const info=await lookup(raw);if(!info)return null;cur={...info,surface:raw,sentence:sentenceOf(r),cfi,bookId:R.meta.id,bookTitle:R.meta.title};return cur;}
 async function onTap(e,c){const doc=c.document;dbg('tap '+Math.round(e.clientX)+','+Math.round(e.clientY));
  if(!$('#popup').hidden){closeAll();return;}
- if(!wordRangeAt(doc,e.clientX,e.clientY)){if(!$('#wordBar').hidden){closeAll();return;}const fr=doc.defaultView.frameElement.getBoundingClientRect();const w=$('#viewer').clientWidth;const x=fr.left+e.clientX;if(x<w*0.22)R.rend.prev();else if(x>w*0.78)R.rend.next();return;}
+ if(!wordRangeAt(doc,e.clientX,e.clientY)){if(!$('#wordBar').hidden){closeAll();dbg('blank: close bar');return;}const fr=doc.defaultView.frameElement.getBoundingClientRect();const vr=$('#viewer').getBoundingClientRect();const x=fr.left+e.clientX-vr.left;const left=x<vr.width/2;dbg('blank x='+Math.round(x)+'/'+Math.round(vr.width)+' -> '+(left?'prev':'next'));left?R.rend.prev():R.rend.next();return;}
  const i=await resolveWord(e.clientX,e.clientY,c);dbg('word '+(i?i.lemma:'none'));if(i)showBar(i);}
 function glossOf(m){return String(m||'').split('\n').map(x=>x.trim()).filter(Boolean).slice(0,2).join('；').replace(/\s+/g,' ');}
 function isSaved(i){return !!words.find(w=>w.id===i.bookId+'|'+i.lemma);}
