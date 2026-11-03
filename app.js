@@ -81,17 +81,24 @@ async function openBook(id,cfi){const meta=await idb.get('books',id);const file=
  book.loaded.navigation.then(nav=>{$('#tocList').innerHTML=nav.toc.map(t=>`<a href="#" data-h="${esc(t.href)}">${esc(t.label.trim())}</a>`).join('');
   $('#tocList').querySelectorAll('a').forEach(a=>a.onclick=e=>{e.preventDefault();$('#toc').hidden=true;rend.display(a.dataset.h)});});
  book.ready.then(()=>book.locations.generate(1600)).then(()=>{if(R.loc)rend.emit('relocated',R.loc)}).catch(()=>{});}
-$('#readerBack').onclick=async()=>{closePopup();$('#reader').hidden=true;if(R.book){R.book.destroy();R.book=null;}await refresh();show(document.querySelector('.tabs .active').dataset.view);};
-$('#prevPage').onclick=()=>R.rend&&R.rend.prev();$('#nextPage').onclick=()=>R.rend&&R.rend.next();
+$('#readerBack').onclick=async()=>{closeAll();$('#reader').hidden=true;if(R.book){R.book.destroy();R.book=null;}await refresh();show(document.querySelector('.tabs .active').dataset.view);};
+$('#prevPage').onclick=()=>{hideBar();R.rend&&R.rend.prev()};$('#nextPage').onclick=()=>{hideBar();R.rend&&R.rend.next()};
 $('#fontUp').onclick=()=>setFont(fontPct+10);$('#fontDown').onclick=()=>setFont(fontPct-10);
 function setFont(p){fontPct=Math.max(70,Math.min(220,p));kvSet('fontPct',fontPct);if(R.rend)R.rend.themes.fontSize(fontPct+'%');toast('字體 '+fontPct+'%');}
 $('#tocBtn').onclick=()=>$('#toc').hidden=false;$('#toc').onclick=e=>{if(e.target.id==='toc')$('#toc').hidden=true};
-document.addEventListener('keydown',e=>{if($('#reader').hidden)return;if(e.key==='ArrowRight')R.rend.next();if(e.key==='ArrowLeft')R.rend.prev();if(e.key==='Escape')closePopup();});
+document.addEventListener('keydown',e=>{if($('#reader').hidden)return;if(e.key==='ArrowRight')R.rend.next();if(e.key==='ArrowLeft')R.rend.prev();if(e.key==='Escape')closeAll();});
 
-function hookContents(c){const doc=c.document,win=c.window;let sx=0,sy=0,st=0;
- doc.addEventListener('touchstart',e=>{const t=e.changedTouches[0];sx=t.clientX;sy=t.clientY;st=Date.now()},{passive:true});
- doc.addEventListener('touchend',e=>{const t=e.changedTouches[0];const dx=t.clientX-sx,dy=t.clientY-sy;if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5){closePopup();dx<0?R.rend.next():R.rend.prev();doc._swiped=Date.now();}},{passive:true});
- doc.addEventListener('click',e=>{if(doc._swiped&&Date.now()-doc._swiped<400)return;onTap(e,c)});
+function hookContents(c){const doc=c.document;let sx=0,sy=0,lpT=null,lpPt=null;
+ try{const st=doc.createElement('style');st.textContent='html,body{-webkit-touch-callout:none!important;-webkit-user-select:none!important;user-select:none!important}::selection{background:rgba(201,165,128,.45)}';doc.head.appendChild(st);}catch(_){}
+ doc.addEventListener('contextmenu',e=>{e.preventDefault();if(doc._lp&&Date.now()-doc._lp<1500)return;resolveWord(e.clientX,e.clientY,c).then(i=>{if(i)showPopup(i)});});
+ doc.addEventListener('selectstart',e=>e.preventDefault());
+ doc.addEventListener('touchstart',e=>{const t=e.changedTouches[0];sx=t.clientX;sy=t.clientY;clearTimeout(lpT);lpPt={x:t.clientX,y:t.clientY};
+  lpT=setTimeout(async()=>{lpT=null;doc._lp=Date.now();const i=await resolveWord(lpPt.x,lpPt.y,c);if(i){hideBar();showPopup(i);if(navigator.vibrate)navigator.vibrate(10);}},500);},{passive:true});
+ doc.addEventListener('touchmove',e=>{const t=e.changedTouches[0];if(Math.hypot(t.clientX-sx,t.clientY-sy)>10){clearTimeout(lpT);lpT=null;}},{passive:true});
+ doc.addEventListener('touchend',e=>{clearTimeout(lpT);lpT=null;const t=e.changedTouches[0];const dx=t.clientX-sx,dy=t.clientY-sy;
+  if(doc._lp&&Date.now()-doc._lp<1500){e.preventDefault();return;}
+  if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5){closeAll();dx<0?R.rend.next():R.rend.prev();doc._swiped=Date.now();}},{passive:false});
+ doc.addEventListener('click',e=>{if(doc._swiped&&Date.now()-doc._swiped<400)return;if(doc._lp&&Date.now()-doc._lp<1500){doc._lp=0;return;}onTap(e,c)});
  setTimeout(()=>highlightSaved(c),0);}
 function caretAt(doc,x,y){if(doc.caretRangeFromPoint)return doc.caretRangeFromPoint(x,y);const p=doc.caretPositionFromPoint&&doc.caretPositionFromPoint(x,y);if(!p)return null;const r=doc.createRange();r.setStart(p.offsetNode,p.offset);return r;}
 const WCH=/[A-Za-z'’\-]/;
@@ -104,20 +111,32 @@ function sentenceOf(range){let blk=range.startContainer.parentElement;while(blk&
  const before=text.slice(0,off);let start=-1;const re2=/[.!?]+["”’)]*\s+(?=[“"‘A-Z])/g;let mm;while((mm=re2.exec(before)))start=mm.index+mm[0].length;
  const s=start<0?0:start;return text.slice(s,e).replace(/\s+/g,' ').trim().slice(0,400);}
 let cur=null;
-async function onTap(e,c){const doc=c.document;const r=wordRangeAt(doc,e.clientX,e.clientY);
- if(!r){if(!$('#popup').hidden){closePopup();return;}const fr=doc.defaultView.frameElement.getBoundingClientRect();const w=$('#viewer').clientWidth;const x=fr.left+e.clientX;if(x<w*0.22)R.rend.prev();else if(x>w*0.78)R.rend.next();return;}
+async function resolveWord(x,y,c){const doc=c.document;const r=wordRangeAt(doc,x,y);if(!r)return null;
  const raw=r.toString();const sel=doc.getSelection();sel.removeAllRanges();sel.addRange(r);
  let cfi=null;try{cfi=c.cfiFromRange(r)}catch(_){}
- const info=await lookup(raw);if(!info)return;cur={...info,surface:raw,sentence:sentenceOf(r),cfi,bookId:R.meta.id,bookTitle:R.meta.title};showPopup(cur);}
+ const info=await lookup(raw);if(!info)return null;cur={...info,surface:raw,sentence:sentenceOf(r),cfi,bookId:R.meta.id,bookTitle:R.meta.title};return cur;}
+async function onTap(e,c){const doc=c.document;
+ if(!$('#popup').hidden){closeAll();return;}
+ if(!wordRangeAt(doc,e.clientX,e.clientY)){if(!$('#wordBar').hidden){closeAll();return;}const fr=doc.defaultView.frameElement.getBoundingClientRect();const w=$('#viewer').clientWidth;const x=fr.left+e.clientX;if(x<w*0.22)R.rend.prev();else if(x>w*0.78)R.rend.next();return;}
+ const i=await resolveWord(e.clientX,e.clientY,c);if(i)showBar(i);}
+function glossOf(m){return String(m||'').split('\n').map(x=>x.trim()).filter(Boolean).slice(0,2).join('；').replace(/\s+/g,' ');}
+function isSaved(i){return !!words.find(w=>w.id===i.bookId+'|'+i.lemma);}
+function showBar(i){$('#wbWord').textContent=i.lemma;$('#wbGloss').textContent=glossOf(i.meaning);const sv=isSaved(i);$('#wbSave').textContent=sv?'✓':'＋';$('#wbSave').classList.toggle('saved',sv);$('#wordBar').hidden=false;}
+function hideBar(){$('#wordBar').hidden=true;}
+function closeAll(){hideBar();closePopup();}
+$('#wbMain').onclick=()=>{if(cur){hideBar();showPopup(cur);}};
+$('#wbSpeak').onclick=()=>{if(!cur)return;const u=new SpeechSynthesisUtterance(cur.lemma);u.lang='en-US';speechSynthesis.cancel();speechSynthesis.speak(u);};
+$('#wbSave').onclick=async()=>{if(!cur)return;await saveCur();showBar(cur);};
 function showPopup(i){$('#popWord').textContent=i.lemma;$('#popPh').textContent=i.phonetic?`/${i.phonetic}/`:'';
  $('#popForm').textContent=i.lemma!==i.word?`原文：${i.surface}`:'';$('#popDef').textContent=i.meaning;$('#popSent').innerHTML=markSent(i.sentence,i.surface);
  const ex=words.find(w=>w.id===i.bookId+'|'+i.lemma);$('#popSave').textContent=ex?'✓ 已存（更新例句）':'＋ 存入單字本';$('#popup').hidden=false;}
 function closePopup(){$('#popup').hidden=true;try{R.rend&&R.rend.getContents().forEach(c=>c.document.getSelection().removeAllRanges())}catch(_){}}
 $('#popClose').onclick=closePopup;
 $('#popSpeak').onclick=()=>{if(!cur)return;const u=new SpeechSynthesisUtterance(cur.lemma);u.lang='en-US';speechSynthesis.cancel();speechSynthesis.speak(u);};
-$('#popSave').onclick=async()=>{if(!cur)return;const id=cur.bookId+'|'+cur.lemma;const old=await idb.get('words',id);
+async function saveCur(){const id=cur.bookId+'|'+cur.lemma;const old=await idb.get('words',id);
  const rec=old?{...old,sentence:cur.sentence,surface:cur.surface,cfi:cur.cfi}:{id,word:cur.lemma,lemma:cur.lemma,surface:cur.surface,phonetic:cur.phonetic,meaning:cur.meaning,sentence:cur.sentence,cfi:cur.cfi,bookId:cur.bookId,bookTitle:cur.bookTitle,created:Date.now(),card:ser(F.createEmptyCard(new Date()))};
- await idb.put('words',rec);await refresh();toast(old?'已更新例句':'已存入：'+cur.lemma);closePopup();R.rend.getContents().forEach(highlightSaved);};
+ await idb.put('words',rec);await refresh();toast(old?'已更新例句':'已存入：'+cur.lemma);R.rend.getContents().forEach(highlightSaved);}
+$('#popSave').onclick=async()=>{if(!cur)return;await saveCur();closePopup();};
 function markSent(s,w){if(!s)return '';const i=s.toLowerCase().indexOf(String(w).toLowerCase());if(i<0)return esc(s);return esc(s.slice(0,i))+'<mark>'+esc(s.slice(i,i+w.length))+'</mark>'+esc(s.slice(i+w.length));}
 
 /* highlight saved words (CSS Custom Highlight API; no DOM changes so CFIs stay valid) */
