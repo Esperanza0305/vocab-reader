@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f7f3ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="生詞閱讀">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+<title>生詞閱讀</title>
+</head>
+<body>
+<div id="app">
+  <section id="view-library" class="view active">
+    <header class="top"><h1>書架</h1>
+      <label class="btn primary">＋ 匯入 EPUB<input type="file" id="epubInput" accept=".epub,application/epub+zip" multiple hidden></label>
+    </header>
+    <div id="bookList" class="book-list"></div>
+    <p id="libEmpty" class="empty">還沒有書。點右上角「匯入 EPUB」，書會只存在這台裝置上。</p>
+  </section>
+
+  <section id="view-review" class="view">
+    <header class="top"><h1>複習</h1>
+      <select id="deckSelect"></select>
+    </header>
+    <div id="reviewStats" class="stats"></div>
+    <div id="reviewCard" class="card-area"></div>
+  </section>
+
+  <section id="view-words" class="view">
+    <header class="top"><h1>單字本</h1>
+      <select id="wordsDeck"></select>
+    </header>
+    <input id="wordSearch" class="search" placeholder="搜尋單字或中文…">
+    <div id="wordList" class="word-list"></div>
+  </section>
+
+  <section id="view-settings" class="view">
+    <header class="top"><h1>設定</h1></header>
+    <div class="panel">
+      <h2>備份</h2>
+      <p class="muted">把單字、複習進度與閱讀位置匯出成一個檔案。換手機或資料不見時，匯入即可還原。</p>
+      <label class="row"><input type="checkbox" id="includeBooks"> 連同書檔一起備份（檔案會比較大）</label>
+      <div class="row gap"><button class="btn primary" id="exportBtn">匯出備份</button>
+      <label class="btn">匯入備份<input type="file" id="importInput" accept=".json,application/json" hidden></label></div>
+    </div>
+    <div class="panel">
+      <h2>離線詞典</h2>
+      <p class="muted" id="dictStatus">查過的字母分區會自動存起來。也可以一次下載全部（約 19 MB），之後完全離線可查。</p>
+      <button class="btn" id="dictDownload">下載完整詞典</button>
+    </div>
+    <div class="panel">
+      <h2>每日新字上限</h2>
+      <div class="row gap"><input type="number" id="newLimit" min="0" max="999" class="num"> <span class="muted">個 / 天（0 = 不限）</span></div>
+    </div>
+    <div class="panel">
+      <h2>儲存空間</h2>
+      <p class="muted" id="storageStatus"></p>
+      <p class="muted">建議在 Safari 點「分享 → 加入主畫面」，當成 App 使用，資料會更穩定保存。</p>
+    </div>
+    <p class="muted center small">詞典資料：ECDICT（MIT）・簡轉繁：OpenCC</p>
+  </section>
+
+  <nav class="tabs">
+    <button data-view="library" class="active"><span>📚</span>書架</button>
+    <button data-view="review"><span>🧠</span>複習<b id="dueBadge" class="badge" hidden></b></button>
+    <button data-view="words"><span>🔤</span>單字本</button>
+    <button data-view="settings"><span>⚙️</span>設定</button>
+  </nav>
+</div>
+
+<div id="reader" class="reader" hidden>
+  <header class="reader-top">
+    <button class="icon" id="readerBack" aria-label="返回">‹</button>
+    <div class="reader-title" id="readerTitle"></div>
+    <button class="icon" id="fontDown" aria-label="縮小字體">A−</button>
+    <button class="icon" id="fontUp" aria-label="放大字體">A＋</button>
+    <button class="icon" id="tocBtn" aria-label="目錄">☰</button>
+  </header>
+  <div id="viewer"></div>
+  <footer class="reader-bottom">
+    <button class="icon" id="prevPage">‹ 上一頁</button>
+    <span id="progress" class="muted small"></span>
+    <button class="icon" id="nextPage">下一頁 ›</button>
+  </footer>
+  <div id="toc" class="sheet" hidden><div class="sheet-inner"><h2>目錄</h2><div id="tocList"></div></div></div>
+</div>
+
+<div id="popup" class="popup" hidden>
+  <div class="pop-head">
+    <div><span class="pop-word" id="popWord"></span> <span class="pop-ph" id="popPh"></span></div>
+    <button class="icon" id="popSpeak" aria-label="發音">🔊</button>
+  </div>
+  <div class="pop-form muted small" id="popForm"></div>
+  <div class="pop-def" id="popDef"></div>
+  <div class="pop-sent small muted" id="popSent"></div>
+  <div class="row gap end"><button class="btn" id="popClose">關閉</button><button class="btn primary" id="popSave">＋ 存入單字本</button></div>
+</div>
+<div id="toast" class="toast" hidden></div>
+
+<script src="lib/jszip.min.js"></script>
+<script src="lib/epub.min.js"></script>
+<script src="lib/ts-fsrs.umd.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
