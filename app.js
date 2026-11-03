@@ -1,4 +1,4 @@
-const APP_VERSION='vr-v10';
+const APP_VERSION='vr-v11';
 'use strict';
 /* ---------- IndexedDB ---------- */
 const DB_NAME='vocab-reader',DB_VER=1;let _db;

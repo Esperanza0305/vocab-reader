@@ -1,4 +1,5 @@
-fonts/huninn-sub.woff2 is a character subset (woff2) of jf open huninn v2.1
+fonts/ui-round.woff2 ("UI Round") is a modified version (character subset, woff2) of jf open huninn v2.1.
+It has been renamed per the OFL because "open huninn" and "huninn" are Reserved Font Names.
 https://github.com/justfont/open-huninn-font
 
 [Kosugi Maru]
