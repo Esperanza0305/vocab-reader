@@ -72,3 +72,7 @@ select,.search,.num{font:inherit;border:1px solid var(--line);border-radius:10px
 .wb-btn{padding:4px}.wb-save{flex-shrink:0;width:36px;height:36px;border-radius:50%;border:1.5px solid #7a5638;background:#fff;color:#7a5638;font-size:18px;line-height:1}.wb-save.saved{background:#efe4d6}
 #dbgLog{position:fixed;left:6px;top:calc(var(--safe-t) + 46px);z-index:99;max-width:70vw;margin:0;padding:6px 8px;font:11px/1.35 ui-monospace,Menlo,monospace;background:rgba(40,30,22,.78);color:#fff6e8;border-radius:8px;pointer-events:none;white-space:pre-wrap}
 button,input,select,textarea{font-family:inherit}
+/* floating island tab bar */
+.tabs{left:14px;right:14px;bottom:calc(10px + var(--safe-b));padding:6px;background:#fff;backdrop-filter:none;-webkit-backdrop-filter:none;border:1px solid #efe6da;border-radius:22px;box-shadow:0 6px 22px rgba(122,86,56,.16),0 1px 3px rgba(122,86,56,.08);gap:4px}
+.tabs button{border-radius:16px;padding:6px 0 4px}.tabs button.active{color:#5c4130;font-weight:600}
+.view{padding-bottom:calc(100px + var(--safe-b))}
