@@ -1,6 +1,7 @@
+@font-face{font-family:'Huninn';src:url(fonts/huninn-sub.woff2) format('woff2');font-display:swap}
 :root{--bg:#f7f3ec;--card:#fff;--ink:#2b2622;--muted:#8a8178;--accent:#7a5638;--accent2:#efe4d6;--line:#e6dfd4;--safe-b:env(safe-area-inset-bottom);--safe-t:env(safe-area-inset-top)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC",sans-serif}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:16px/1.5 "Huninn",-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC",sans-serif}
 .view{display:none;padding:calc(var(--safe-t) + 8px) 16px calc(80px + var(--safe-b));min-height:100vh}
 .view.active{display:block}
 .top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:4px 0 12px}
@@ -70,3 +71,4 @@ select,.search,.num{font:inherit;border:1px solid var(--line);border-radius:10px
 .wb-main b{font-size:18px;color:#5c4130;flex-shrink:0}.wb-main span{font-size:14px;color:#6b5a4c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .wb-btn{padding:4px}.wb-save{flex-shrink:0;width:36px;height:36px;border-radius:50%;border:1.5px solid #7a5638;background:#fff;color:#7a5638;font-size:18px;line-height:1}.wb-save.saved{background:#efe4d6}
 #dbgLog{position:fixed;left:6px;top:calc(var(--safe-t) + 46px);z-index:99;max-width:70vw;margin:0;padding:6px 8px;font:11px/1.35 ui-monospace,Menlo,monospace;background:rgba(40,30,22,.78);color:#fff6e8;border-radius:8px;pointer-events:none;white-space:pre-wrap}
+button,input,select,textarea{font-family:inherit}
